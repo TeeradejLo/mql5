@@ -21,10 +21,8 @@ int handlerSlowMA = iMA(_Symbol, PERIOD_CURRENT, 200, 0, MODE_SMMA, PRICE_CLOSE)
 CTrade trade;
 
 double FindLotSize(int stopLossPips, double riskPercentage) {
-   // e.g. £10 = £1000 * 1%
    double maxRiskAmount = AccountInfoDouble(ACCOUNT_BALANCE) * riskPercentage / 100;
 
-   // e.g. 20 pence = £10 / 50
    double riskPerPip = maxRiskAmount / stopLossPips;
 
    double pipValue = 10 * SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_VALUE);
