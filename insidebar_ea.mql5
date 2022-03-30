@@ -11,14 +11,17 @@
 
 input double risk_percent = 1;
 input ENUM_TIMEFRAMES timeframe = PERIOD_CURRENT;
+input ENUM_APPLIED_PRICE applied_price = PRICE_CLOSE;
 
 input double entry_factor = 0.1;
 input double tp_factor = 0.8;
 input double sl_factor = 0.4;
+input int order_expire_hour = 12;
 
 CTrade trade;
 
 int magic_number = 124;
+int handle_slow_ma;
 int total_bars;
 
 /*
@@ -26,11 +29,15 @@ int total_bars;
       Spread check
       Margin check
       Market Close Period check -> Clear all pending order?
-      Order Expiration Time
       Lot Size Correction
       Currency Conversion
-      MA Filter
       Candle body ratio
+      Candle Wick Size
+      Check 2 previous high
+
+   Added:
+      Expiration time
+      MA Filter
 */
 
 double priceToPips (double price1, double price2) {
@@ -177,6 +184,19 @@ bool clearPositionAndOrder() {
    return true;
 }
 
+bool isPriceAboveMA () {
+   double slowMAbuffer[];
+   CopyBuffer(handle_slow_ma, 0, 1, 1, slowMAbuffer);
+
+   double curr_price = SymbolInfoDouble(_Symbol, SYMBOL_LAST);
+
+   if (curr_price > slowMAbuffer[0]) {
+      return true;
+   } else {
+      return false;
+   }
+}
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -185,6 +205,8 @@ int OnInit() {
    trade.SetAsyncMode(true);
 
    total_bars = iBars(_Symbol, timeframe);
+
+   handle_slow_ma = iMA(_Symbol, timeframe, 200, 0, MODE_SMMA, applied_price);
 
    return(INIT_SUCCEEDED);
 }
@@ -208,29 +230,31 @@ void OnTick() {
       double high = iHigh(_Symbol, timeframe, 2);
       double low = iLow(_Symbol, timeframe, 2);
 
-      if (signalInsideBar(ORDER_TYPE_BUY)) {
+      if (signalInsideBar(ORDER_TYPE_BUY) && isPriceAboveMA()) {
          if (clearPositionAndOrder()) {
             double buy_stop_price = calcEntryPrice(ORDER_TYPE_BUY, high, low);
             double sl = calcSLPrice(ORDER_TYPE_BUY, high, low);
             double tp = calcTPPrice(ORDER_TYPE_BUY, high, low);
             double vol = findLotSize(priceToPips(sl, buy_stop_price), risk_percent);
+            datetime expire_time = TimeCurrent() + order_expire_hour * PeriodSeconds(PERIOD_H1);
 
             Print("Vol: ", vol, "\nEntry: ", buy_stop_price, "\nStop loss: ", sl, "\nTake profit: ", tp);
 
-            if (!trade.BuyStop(vol, buy_stop_price, _Symbol, sl, tp, ORDER_TIME_DAY, 0, "BUY STOP Babypips ISB")) {
+            if (!trade.BuyStop(vol, buy_stop_price, _Symbol, sl, tp, ORDER_TIME_SPECIFIED, expire_time, "BUY STOP Babypips ISB")) {
                Print("Error ordering buy stop order");
             }
          }
-      } else if (signalInsideBar(ORDER_TYPE_SELL)) {
+      } else if (signalInsideBar(ORDER_TYPE_SELL) && !isPriceAboveMA()) {
          if (clearPositionAndOrder()) {
             double sell_stop_price = calcEntryPrice(ORDER_TYPE_SELL, high, low);
             double sl = calcSLPrice(ORDER_TYPE_SELL, high, low);
             double tp = calcTPPrice(ORDER_TYPE_SELL, high, low);
             double vol = findLotSize(priceToPips(sl, sell_stop_price), risk_percent);
+            datetime expire_time = TimeCurrent() + order_expire_hour * PeriodSeconds(PERIOD_H1);
 
             Print("Vol: ", vol, "\nEntry: ", sell_stop_price, "\nStop loss: ", sl, "\nTake profit: ", tp);
 
-            if (!trade.SellStop(vol, sell_stop_price, _Symbol, sl, tp, ORDER_TIME_DAY, 0, "SELL STOP Babypips ISB")) {
+            if (!trade.SellStop(vol, sell_stop_price, _Symbol, sl, tp, ORDER_TIME_SPECIFIED, expire_time, "SELL STOP Babypips ISB")) {
                Print("Error ordering sell stop order");
             }
          }
