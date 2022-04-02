@@ -17,6 +17,8 @@ input double entry_factor = 0.1;
 input double tp_factor = 0.8;
 input double sl_factor = 0.4;
 input int order_expire_hour = 12;
+input int candle_size = 5;
+input int candle_body_percent = 60;
 
 CTrade trade;
 
@@ -31,13 +33,10 @@ int total_bars;
       Market Close Period check -> Clear all pending order?
       Lot Size Correction
       Currency Conversion
-      Candle body ratio
-      Candle Wick Size
-      Check 2 previous high
 
    Added:
-      Expiration time
-      MA Filter
+      Candle body ratio and size
+      Check 2 previous high (unused)
 */
 
 double priceToPips (double price1, double price2) {
@@ -64,7 +63,7 @@ double findLotSize(double stopLossPips, double riskPercentage) {
 
    double pipValue = 10 * SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
 
-   if (!StringCompare(_Symbol, "USDJPY")) {
+   if (!StringCompare(_Symbol, "USDJPY") || !StringCompare(_Symbol, "GBPJPY")) {
       //Convert JPY to USD
       pipValue *= NormalizeDouble(2 / (SymbolInfoDouble("USDJPY", SYMBOL_BID) + SymbolInfoDouble("USDJPY", SYMBOL_ASK)), 5);
    }
@@ -84,6 +83,14 @@ bool signalInsideBar(ENUM_ORDER_TYPE order) {
    double low1 = iLow(_Symbol, timeframe, 2);
    double high2  = iHigh(_Symbol, timeframe, 1);
    double low2 = iLow(_Symbol, timeframe, 1);
+
+   if (MathAbs(open1 - close1)/MathAbs(high1 - low1) * 100 < candle_body_percent) {
+      return false;
+   }
+
+   if (priceToPips(open1, close1) < candle_size) {
+      return false;
+   }
 
    if(order == ORDER_TYPE_BUY) {
       if (open1 >= close1) {
@@ -195,6 +202,41 @@ bool isPriceAboveMA () {
    } else {
       return false;
    }
+}
+
+//unused
+bool checkTwoPrevious(ENUM_ORDER_TYPE order) {
+   if (order == ORDER_TYPE_BUY) {
+      int first_index = iHighest(_Symbol, timeframe, MODE_HIGH, 40, 1);
+      int second_index = iHighest(_Symbol, timeframe, MODE_HIGH, 20, 1);
+
+      if (first_index == -1 || second_index == -1) {
+         Print("Error: ", GetLastError());
+         return false;
+      }
+
+      if (first_index != second_index) {
+         return false;
+      } else {
+         return true;
+      }
+   } else if (order == ORDER_TYPE_SELL) {
+      int first_index = iLowest(_Symbol, timeframe, MODE_LOW, 40, 1);
+      int second_index = iLowest(_Symbol, timeframe, MODE_LOW, 20, 1);
+
+      if (first_index == -1 || second_index == -1) {
+         Print("Error: ", GetLastError());
+         return false;
+      }
+
+      if (first_index != second_index) {
+         return false;
+      } else {
+         return true;
+      }
+   }
+
+   return false;
 }
 
 //+------------------------------------------------------------------+
