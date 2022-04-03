@@ -31,8 +31,8 @@ int total_bars;
       Spread check
       Margin check
       Market Close Period check -> Clear all pending order?
-      Lot Size Correction
-      Currency Conversion
+      Lot Size Correction -> Currency Conversion
+      Equity sometime = 0 -> check connection?
 
    Added:
       Candle body ratio and size
