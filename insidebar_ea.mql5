@@ -62,11 +62,14 @@ double findLotSize(double stopLossPips, double riskPercentage) {
    double riskPerPip = maxRiskAmount / stopLossPips;
 
    double pipValue = 10 * SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
+   Print("Pip Val.: ", pipValue);
 
+   /*
    if (!StringCompare(_Symbol, "USDJPY") || !StringCompare(_Symbol, "GBPJPY")) {
       //Convert JPY to USD
-      pipValue *= NormalizeDouble(2 / (SymbolInfoDouble("USDJPY", SYMBOL_BID) + SymbolInfoDouble("USDJPY", SYMBOL_ASK)), 5);
+      pipValue *= NormalizeDouble(2/(SymbolInfoDouble(_Symbol, SYMBOL_ASK) + SymbolInfoDouble(_Symbol, SYMBOL_BID)), 5);
    }
+   */
 
    double lot = riskPerPip / pipValue;
 
