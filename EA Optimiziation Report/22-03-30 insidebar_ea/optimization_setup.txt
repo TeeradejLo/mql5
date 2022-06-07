@@ -1,0 +1,13 @@
+Symbol: USD/JPY
+Timeframe: H4
+Period: 2020-01-01 -> 2022-03-29
+Deposit: 5000 USD
+Leverage: 1:100
+Optimization: Fast Genetic based Algorithm (Balance Max)
+
+Tested Inputs:
+  risk_percent: 1.0 -> 0.1 -> 2.0
+  entry_factor: 0.1 -> 0.01 -> 0.5
+  tp_factor: 0.8 -> 0.08 -> 1.2
+  sl_factor: 0.4 -> 0.04 -> 0.6
+  order_expire_hour: 12 -> 1 -> 24
